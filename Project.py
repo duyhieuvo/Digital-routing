@@ -19,17 +19,16 @@ def event(events,hold):
             destination[i] = np.random.uniform(1,18)
 
     # Mean hold time:
-    hold = hold  # 1/lambda
+    #hold = hold  # 1/lambda
     holding = np.random.exponential(hold, events)
 
     event = np.vstack((source, destination,holding)).T
     return event
 
 def arrival(events,arrival):
-    # Mean interarrval and hold time:
-    interarrival = arrival  # 1/lambda
-    arrival = np.random.exponential(interarrival, events)
-    return arrival
+    # Mean interarrval hold time:
+    interarrival = np.random.exponential(arrival, events)
+    return interarrival
 
 
 def freePath(event,G):
@@ -63,16 +62,14 @@ def assignWavelength(freeWavelength):
 def Transmission(event,wavelength,path,G):
     for i in range(len(path)-1):
         nx.set_edge_attributes(G, 'available', {(path[i],path[i+1],wavelength): (G[path[i]][path[i+1]][wavelength]['available'] - 1)})
-    #print G.edges(data=True)
     start_time = time.time()
     while(True):
         elapsed_time = time.time() - start_time
-        #print elapsed_time
         if (elapsed_time>=event[2]):
             break
     for i in range(len(path) - 1):
         nx.set_edge_attributes(G, 'available', {(path[i],path[i+1],wavelength): (G[path[i]][path[i+1]][wavelength]['available'] + 1)})
-    #print G.edges(data=True)
+
 
 #Create an empty graph with no nodes and no edges
 G = nx.MultiGraph(nation ="Germany")
@@ -83,8 +80,6 @@ cities = ["Hamburg", "Berlin", "Leipzig", "Nuernberg", "Muenchen", "Ulm", "Stutt
           "Dortmund", "Norden", "Bremen", "Hannover"]
 for i in range(17):
     G.add_node(i+1,city=cities[i])
-#Check the nodes:
-#print G.nodes(data=True)
 
 #Add edges:
 for i in range(16):
@@ -102,21 +97,21 @@ for j in range(8):
     G.add_edge(10, 4, key=j + 1, available=2)
     G.add_edge(7, 4, key=j + 1, available=2)
 
-#Plot the graph
+# Plot the graph
 pos = nx.spring_layout(G)
-nx.draw(G,pos)
-node_labels = nx.get_node_attributes(G,'city')
+nx.draw(G, pos)
+node_labels = nx.get_node_attributes(G, 'city')
 nx.draw_networkx_labels(G, pos, node_labels)
 plt.show()
 
 
-def running(event,arrival,multiplier,G):
+def running(event,arrival,multiplier,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,G):
     blocking = 0
 
-    event = event(200,1*multiplier)
+    event = event(100,1*multiplier)
     print event
 
-    arrival= arrival(200,0.01)
+    arrival= arrival(100,0.0001)
     print arrival
 
     i = 0
@@ -124,13 +119,12 @@ def running(event,arrival,multiplier,G):
         start_time = time.time()
         while(True):
             elapsed_time = time.time() - start_time
-            # print elapsed_time
             if (elapsed_time >= arrival[i]):
                 break
         current_event = event[i]
         path = freePath(current_event,G)
         print i+1
-        print path
+        #print path
         for j in range(len(path)):
             free_Wavelength = freeWavelength(path[j])
             if (checkBlocking(free_Wavelength)):
@@ -144,24 +138,26 @@ def running(event,arrival,multiplier,G):
             break
     return blocking
 
-blocking = np.zeros(5)
-for i in range(5):
-    blocking[i] = running(event,arrival,i+1,G)
+# blocking = np.zeros(3)
+# for i in range(3):
+#     blocking[i] = running(event,arrival,i+1,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,G)
+# print blocking
+# blocking = blocking/100
+# ratio = [1000,2000,3000]
+#
+# # calculate polynomial
+# z = np.polyfit(ratio, blocking, 3)
+# f = np.poly1d(z)
+#
+# # calculate new x's and y's
+# ratio_new = np.linspace(ratio[0], ratio[-1], 50)
+# blocking_new = f(ratio_new)
+#
+# plt.plot(ratio,blocking,'o', ratio_new, blocking_new)
+# plt.xlim([ratio[0]-1, ratio[-1] + 1 ])
+# plt.show()
+blocking = running(event,arrival,5,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,G)
 print blocking
-blocking = blocking/1000
-ratio = [100,200,300,400,500]
-
-# calculate polynomial
-z = np.polyfit(ratio, blocking, 3)
-f = np.poly1d(z)
-
-# calculate new x's and y's
-ratio_new = np.linspace(ratio[0], ratio[-1], 50)
-blocking_new = f(ratio_new)
-
-plt.plot(ratio,blocking,'o', ratio_new, blocking_new)
-plt.xlim([ratio[0]-1, ratio[-1] + 1 ])
-plt.show()
 
 
 
