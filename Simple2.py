@@ -20,24 +20,23 @@ def event(events,hold):
             destination[i] = np.random.uniform(1,7)
 
     # Mean hold time:
-    hold = hold  # 1/lambda
+    #hold is 1/lambda
     holding = np.random.exponential(hold, events)
 
     event = np.vstack((source, destination,holding)).T
     return event
 
 def arrival(events,arrival):
-    # Mean interarrval and hold time:
-    interarrival = arrival  # 1/lambda
-    arrival = np.random.exponential(interarrival, events)
-    return arrival
+    # arrival  # 1/lambda
+    interarrival = np.random.exponential(arrival, events)
+    return interarrival
 
 
 def freePath(event,G):
     path = nx.all_shortest_paths(G, source=event[0], target=event[1])
     return list(path)
 
-def freeWavelength(path):  ##check again
+def freeWavelength(path):
     remaining = np.zeros((len(path)-1,2))
     for i in range(len(path) -1 ):
         for j in range(2):
@@ -47,7 +46,6 @@ def freeWavelength(path):  ##check again
     for i in range(2):
         if(np.all(remaining[:,i])):
             ratio[i] = np.sum(remaining[:,i])
-
     if(np.sum(ratio)!=0):
         ratio = ratio/np.sum(ratio)
     return ratio
@@ -65,20 +63,16 @@ def assignWavelength(freeWavelength):
 def Transmission(event,wavelength,path,G):
     for i in range(len(path)-1):
         nx.set_edge_attributes(G, 'available', {(path[i],path[i+1],wavelength): (G[path[i]][path[i+1]][wavelength]['available'] - 1)})
-    #print G.edges(data=True)
+
     start_time = time.time()
     while(True):
         elapsed_time = time.time() - start_time
-        #print elapsed_time
         if (elapsed_time>=event[2]):
             break
     for i in range(len(path) - 1):
         nx.set_edge_attributes(G, 'available', {(path[i],path[i+1],wavelength): (G[path[i]][path[i+1]][wavelength]['available'] + 1)})
-    #print G.edges(data=True)
 
-# def Release(wavelength,path,G):
-#     for i in range(len(path) - 1):
-#         nx.set_edge_attributes(G, 'available', {(path[i], path[i + 1], wavelength): (G[path[i]][path[i + 1]][wavelength]['available'] + 1)})
+
 
 G = nx.MultiGraph()
 
@@ -94,22 +88,11 @@ for j in range(2):
     G.add_edge(1,6,key=j+1,available=2)
     G.add_edge(2,5,key=j+1,available=2)
 
-#Checking:
-# print "Nodes"
-# print G.nodes(data=True)
-# print "Edges"
-# print G.edges(data=True)
-
 #Draw the graph
 pos = nx.spring_layout(G)
 nx.draw(G,pos,with_labels=True)
 plt.show()
 
-# nx.set_edge_attributes(G, 'available', {(1,2,2): 1})
-# wavelength = freeWavelength([1,2,3,4])
-# print wavelength
-# print checkBlocking(wavelength)
-# print assignWavelength(wavelength)
 
 def running(event,arrival,multiplier,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,G):
     blocking = 0
@@ -125,7 +108,6 @@ def running(event,arrival,multiplier,freePath,freeWavelength,checkBlocking,assig
         start_time = time.time()
         while(True):
             elapsed_time = time.time() - start_time
-            # print elapsed_time
             if (elapsed_time >= arrival[i]):
                 break
         current_event = event[i]
@@ -135,13 +117,9 @@ def running(event,arrival,multiplier,freePath,freeWavelength,checkBlocking,assig
         for j in range(len(path)):
             free_Wavelength = freeWavelength(path[j])
             if (checkBlocking(free_Wavelength)):
-                #print "test"
                 wavelength = assignWavelength(free_Wavelength)
                 #print wavelength
                 thread.start_new_thread(Transmission,(current_event,wavelength, path[j], G))
-                #Transmission(current_event,wavelength, path, G)
-                # except:
-                #     print "Error: unable to start thread"
                 break
             elif(j==(len(path)-1)):
                 blocking +=1
