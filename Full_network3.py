@@ -163,8 +163,8 @@ def running(G,events,multiplier,Event,timeline,freePath,freePath1,freeWavelength
                 break
         if (timeLine[i][1]==0):
             current_event = event[k]
-            if ((k%80)==0):
-                path = freePath1(G, current_event,4)
+            if ((k%200)==0):
+                path = freePath1(G, current_event,3)
                 if (len(path)==0):
                     path = freePath(current_event, G)
             else:
