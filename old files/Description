@@ -1,0 +1,2 @@
+The approach in these files is to simulate the network using multithread to handle each event.
+=> Problem occurs when dealing with a large number of events.
