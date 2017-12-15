@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+#Function to create the events array, parameter 'events' is the number of events wanted.
 def Event(events):
     source = np.zeros(events, dtype=np.int8)
     destination = np.zeros(events, dtype=np.int8)
@@ -17,6 +18,8 @@ def Event(events):
     event = np.vstack((source, destination)).T
     return event
 
+#Function to create timeline array containing arrival time, departure time of each event
+#Parameter: 'events': number of events; 'arrival': mean time between events, 'holding': mean holding time of events.
 def timeline(events,arrival,hold):
     time = np.zeros((events*2,3))
     entering = np.zeros(events)
@@ -28,20 +31,21 @@ def timeline(events,arrival,hold):
     for i in range(events):
         time[i][0]=entering[i]
         time[i][1]=0 #0 indicates entering
-        time[i][2]=i
+        time[i][2]=i #indicates the orders the events
     for i in range(events,events*2):
         time[i][0]=leaving[i-events]
         time[i][1]=1 #1 indicates leaving
-        time[i][2]=(i-events)
+        time[i][2]=(i-events) #indicates the orders the events
 
     time = time[time[:,0].argsort()]
     return time
 
-
+#Function to determine all shortest paths between source and destination nodes.
 def freePath(event,G):
     path = nx.all_shortest_paths(G, source=event[0], target=event[1])
     return list(path)
 
+#Function to determine the number of free wavelength along a path
 def freeWavelength(path):
     remaining = np.zeros((len(path)-1,8))
     for i in range(len(path) -1 ):
@@ -61,16 +65,19 @@ def freeWavelength(path):
     #print ratio
     return ratio
 
+#In accordance to result from function 'freeWavelength', this function check whether there is no free wavelength along a path
 def checkBlocking(freeWavelength):
     if (not np.any(freeWavelength)): #np.any: return false if all are zeros => not np.any return true if all are zeros
         return False #If blocked
     else:
         return True #If NOT blocked
 
+#This function assign a free wavelength to a light path, the wavelength with higher availability will have higher probability to be chosen.
 def assignWavelength(freeWavelength):
     wavelength = np.random.choice([1,2,3,4,5,6,7,8],p = freeWavelength)
     return wavelength
 
+#These functions simulate the utilization of network resources by changing the 'available' parameter of free wavelength of an edge.
 def Transmission(wavelength,path,G):
     for i in range(len(path)-1):
         nx.set_edge_attributes(G, 'available', {(path[i],path[i+1],wavelength): (G[path[i]][path[i+1]][wavelength]['available'] - 1)})
@@ -86,6 +93,9 @@ def Release(wavelength,path,G):
 
 
 #Function to create the graph
+
+#There is 8 edges between every pair of nodes representing 8 different wavelengths
+#Each egde has an attribute 'available' representing the remaining free wavelength of that egde
 def createGraph():
     #Create an empty graph with no nodes and no edges
     G = nx.MultiGraph(nation ="Germany")
@@ -122,7 +132,6 @@ nx.draw(G, pos)
 node_labels = nx.get_node_attributes(G, 'city')
 nx.draw_networkx_labels(G, pos, node_labels)
 plt.show()
-
 
 def running(G,events,multiplier,Event,timeline,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,Release):
     assignment = []
@@ -168,15 +177,16 @@ def running(G,events,multiplier,Event,timeline,freePath,freeWavelength,checkBloc
             break
     return blocking
 
-# blocking = running(G,10000,Event,timeline,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,Release)
-# print (blocking)
 
 blocking = np.zeros(5)
+#Run the simulations 5 times for 5 different values of ration lamda/muy
 for i in range(5):
     blocking[i] = running(G,10000,i+1,Event,timeline,freePath,freeWavelength,checkBlocking,assignWavelength,Transmission,Release)
 print blocking
 blocking = blocking/10000
 ratio = [100,200,300,400,500]
+
+#Approximate a curve to represent the resulting values.
 
 # calculate polynomial
 z = np.polyfit(ratio, blocking, 3)
